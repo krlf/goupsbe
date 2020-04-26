@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run -d -v $(pwd):/app/db -v /var/run/shutdown_signal:/shutdown_signal -p 3000:3000 --env LISTEN_PORT=3000 --device=/dev/ttyUSB0 goupsbe
