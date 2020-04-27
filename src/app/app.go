@@ -2,30 +2,29 @@ package app
 
 import (
 	"../db"
-	"log"
-    "os"
-	"os/signal"
-	"syscall"
-	"sync"
-	"github.com/gorilla/mux"
 	"../handler"
+	"github.com/gorilla/mux"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 type App struct {
-	Db *db.Db
-	Quit chan bool
-	WriterSerialRead chan string
-	WriterSerialWrite chan string
-	MonitorSerialRead chan string
+	Db                 *db.Db
+	Quit               chan bool
+	WriterSerialRead   chan string
+	WriterSerialWrite  chan string
+	MonitorSerialRead  chan string
 	MonitorSerialWrite chan string
-	RestSerialRead chan string
-	RestSerialWrite chan string
+	RestSerialRead     chan string
+	RestSerialWrite    chan string
 
 	WorkersWg *sync.WaitGroup
 
 	Router *mux.Router
-
 }
 
 func (a *App) Initialize() {
@@ -45,16 +44,16 @@ func (a *App) Initialize() {
 	a.setRoutes()
 
 	a.Db = &db.Db{}
-	a.Db.Open();
+	a.Db.Open()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	// signal.Notify(sigs, os.Interrupt)
 
 	go func() {
-        sig := <-sigs
-        log.Print(sig)
-        close(a.Quit)
+		sig := <-sigs
+		log.Print(sig)
+		close(a.Quit)
 	}()
 
 }
@@ -69,7 +68,7 @@ func (a *App) Run() {
 		}
 	}
 	a.WorkersWg.Wait()
-	a.Db.Close();
+	a.Db.Close()
 	log.Print("Done.")
 }
 
@@ -85,6 +84,7 @@ func (a *App) Get(path string, f func(w http.ResponseWriter, r *http.Request)) {
 }
 
 type RequestHandlerFunction func(a *db.Db, w http.ResponseWriter, r *http.Request)
+
 func (a *App) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		a.setHeaders(w)
@@ -93,6 +93,7 @@ func (a *App) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
 }
 
 type RequestHandlerFunctionLive func(SerialRead <-chan string, SerialWrite chan<- string, w http.ResponseWriter, r *http.Request)
+
 func (a *App) handleRequestLive(handler RequestHandlerFunctionLive) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		a.setHeaders(w)
@@ -101,8 +102,8 @@ func (a *App) handleRequestLive(handler RequestHandlerFunctionLive) http.Handler
 }
 
 func (a *App) setHeaders(w http.ResponseWriter) {
-    w.Header().Set("Access-Control-Allow-Origin", "*");
-    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
-    w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type");
-    //w.Header().Set("Access-Control-Allow-Credentials", "true");
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
+	//w.Header().Set("Access-Control-Allow-Credentials", "true");
 }

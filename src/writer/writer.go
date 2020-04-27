@@ -1,12 +1,12 @@
 package writer
 
 import (
+	"../app"
+	"../config"
+	"../db"
+	"../model"
 	"log"
 	"time"
-	"../db"
-	"../app"
-	"../model"
-	"../config"
 )
 
 func Worker(a *app.App) {

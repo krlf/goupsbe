@@ -1,18 +1,18 @@
 package handler
 
 import (
-	"net/http"
 	"../db"
 	"../model"
 	"github.com/gorilla/mux"
+	"net/http"
 	"strconv"
 )
 
 type RestPage struct {
-	Content []model.Volt
+	Content    []model.Volt
 	PageNumber int
-	PageSize int
-	Records int
+	PageSize   int
+	Records    int
 }
 
 func GetVolt(SerialRead <-chan string, SerialWrite chan<- string, w http.ResponseWriter, r *http.Request) {
@@ -48,7 +48,7 @@ func GetHist(db *db.Db, w http.ResponseWriter, r *http.Request) {
 
 	v, records, newPg, newSz := db.UpsVoltageGet(pg, sz)
 
-	page := RestPage{v,	newPg,	newSz,	records}
+	page := RestPage{v, newPg, newSz, records}
 
 	respondJSON(w, http.StatusOK, page)
 }

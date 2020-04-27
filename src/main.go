@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
-	"./config"
 	"./app"
-	"./reader"
+	"./config"
 	"./monitor"
-	"./writer"
+	"./reader"
 	"./server"
+	"./writer"
+	"log"
 )
 
 func main() {
@@ -16,13 +16,12 @@ func main() {
 	config.Read()
 
 	app := &app.App{}
-	app.Initialize();
+	app.Initialize()
 
 	go reader.Worker(app)
 	go writer.Worker(app)
 	go monitor.Worker(app)
 	go server.Worker(app)
 
-	app.Run();
+	app.Run()
 }
-

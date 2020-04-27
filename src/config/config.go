@@ -7,22 +7,22 @@ import (
 )
 
 type Config struct {
-	ListenPort string
+	ListenPort      string
 	MonitorInterval time.Duration
-	WriterInterval time.Duration
-	SerialDevice string
-	DbPath string
+	WriterInterval  time.Duration
+	SerialDevice    string
+	DbPath          string
 }
 
 var config Config
 
 func Read() {
 	config = Config{
-		ListenPort: getEnvString("LISTEN_PORT", "3000"),
+		ListenPort:      getEnvString("LISTEN_PORT", "3000"),
 		MonitorInterval: time.Duration(getEnvInt("MONITOR_INTERVAL", 37000)),
-		WriterInterval: time.Duration(getEnvInt("WRITER_INTERVAL", 97000)),
-		SerialDevice: getEnvString("SERIAL_DEVICE", "/dev/ttyUSB0"),
-		DbPath: getEnvString("DB_PATH", "/app/db/ups.sqlite"),
+		WriterInterval:  time.Duration(getEnvInt("WRITER_INTERVAL", 97000)),
+		SerialDevice:    getEnvString("SERIAL_DEVICE", "/dev/ttyUSB0"),
+		DbPath:          getEnvString("DB_PATH", "/app/db/ups.sqlite"),
 	}
 }
 
@@ -37,7 +37,7 @@ func getEnvInt(key string, defaultVal int) int {
 	if value, exists := os.LookupEnv(key); exists {
 		if i, err := strconv.Atoi(value); err == nil {
 			return i
-		}		
+		}
 	}
 	return defaultVal
 }

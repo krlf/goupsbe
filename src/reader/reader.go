@@ -1,11 +1,11 @@
 package reader
 
 import (
+	"../app"
+	"../config"
 	"github.com/tarm/serial"
 	"log"
-	"../app"
 	"time"
-	"../config"
 )
 
 func Worker(a *app.App) {

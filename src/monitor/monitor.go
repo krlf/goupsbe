@@ -1,12 +1,12 @@
 package monitor
 
 import (
-	"log"
-	"time"
 	"../app"
-	"../model"
-	"os/exec"
 	"../config"
+	"../model"
+	"log"
+	"os/exec"
+	"time"
 )
 
 func Worker(a *app.App) {
@@ -40,7 +40,7 @@ func Worker(a *app.App) {
 				_, err := cmd.Output()
 				if err != nil {
 					log.Println(err)
-				}				
+				}
 			}
 		case <-a.Quit:
 			log.Print("Monitor thread exit...")

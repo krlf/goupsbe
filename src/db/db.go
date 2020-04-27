@@ -1,12 +1,12 @@
 package db
 
 import (
-	"log"
+	"../config"
+	"../model"
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"../model"
+	"log"
 	"strconv"
-	"../config"
 )
 
 type Db struct {
@@ -22,14 +22,14 @@ func (db *Db) Open() {
 
 	stmt, err := dbConn.Prepare(
 		"CREATE TABLE IF NOT EXISTS ups " +
-		"(uid INTEGER PRIMARY KEY AUTOINCREMENT, " +
-		"vcc INTEGER, " +
-		"vin INTEGER, " +
-		"vcin INTEGER, " +
-		"vout INTEGER, " +
-		"vb1 INTEGER, " +
-		"vb2 INTEGER, " +
-		"created TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
+			"(uid INTEGER PRIMARY KEY AUTOINCREMENT, " +
+			"vcc INTEGER, " +
+			"vin INTEGER, " +
+			"vcin INTEGER, " +
+			"vout INTEGER, " +
+			"vb1 INTEGER, " +
+			"vb2 INTEGER, " +
+			"created TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func (db *Db) Open() {
 
 func (db *Db) Close() {
 	if db.DbConn != nil {
-		db.DbConn.Close()	
+		db.DbConn.Close()
 		log.Print("DB connection closing.")
 	}
 }
@@ -53,7 +53,7 @@ func (db *Db) UpsVoltageInsert(v *model.Volt) {
 
 	if db.DbConn == nil {
 		log.Print("DB connection is not ready.")
-		return;
+		return
 	}
 
 	stmt, err := db.DbConn.Prepare("INSERT INTO ups(vcc, vin, vcin, vout, vb1, vb2) values(?,?,?,?,?,?)")
@@ -80,7 +80,7 @@ func (db *Db) UpsVoltageGet(pg int, sz int) (v []model.Volt, records int, newPg 
 	}
 
 	for rows.Next() {
-    	err = rows.Scan(&records)
+		err = rows.Scan(&records)
 		if err != nil {
 			log.Println("[UpsVoltageGet] Scan error:")
 			log.Println(err)

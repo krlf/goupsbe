@@ -1,12 +1,12 @@
 package server
 
 import (
-	"log"
 	"../app"
-	"net/http"
-	"context"
-	"time"
 	"../config"
+	"context"
+	"log"
+	"net/http"
+	"time"
 )
 
 func Worker(a *app.App) {
@@ -16,13 +16,13 @@ func Worker(a *app.App) {
 
 	log.Print("Server thread starting...")
 
-	srv := &http.Server {
-		Addr: ":" + config.GetListenPort(),
-		Handler: a.Router }
+	srv := &http.Server{
+		Addr:    ":" + config.GetListenPort(),
+		Handler: a.Router}
 
 	go func() {
 		log.Print("HTTP Server Listener thread starting...")
-		err := srv.ListenAndServe();
+		err := srv.ListenAndServe()
 		if err != http.ErrServerClosed {
 			log.Fatal("[Server] Error ListenAndServe(): %v", err)
 		}
@@ -32,6 +32,6 @@ func Worker(a *app.App) {
 	log.Print("HTTP Server Listener shutdown...")
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	srv.Shutdown(ctxShutDown);
+	srv.Shutdown(ctxShutDown)
 	log.Print("Server thread exit...")
 }
