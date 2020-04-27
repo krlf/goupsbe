@@ -87,6 +87,7 @@ func (a *App) Get(path string, f func(w http.ResponseWriter, r *http.Request)) {
 type RequestHandlerFunction func(a *db.Db, w http.ResponseWriter, r *http.Request)
 func (a *App) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		a.setHeaders(w)
 		handler(a.Db, w, r)
 	}
 }
@@ -94,6 +95,14 @@ func (a *App) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
 type RequestHandlerFunctionLive func(SerialRead <-chan string, SerialWrite chan<- string, w http.ResponseWriter, r *http.Request)
 func (a *App) handleRequestLive(handler RequestHandlerFunctionLive) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		a.setHeaders(w)
 		handler(a.RestSerialRead, a.RestSerialWrite, w, r)
 	}
+}
+
+func (a *App) setHeaders(w http.ResponseWriter) {
+    w.Header().Set("Access-Control-Allow-Origin", "*");
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
+    w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type");
+    //w.Header().Set("Access-Control-Allow-Credentials", "true");
 }

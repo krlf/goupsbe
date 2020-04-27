@@ -9,7 +9,7 @@ import (
 )
 
 type RestPage struct {
-	Volt []model.Volt
+	Content []model.Volt
 	PageNumber int
 	PageSize int
 	Records int
