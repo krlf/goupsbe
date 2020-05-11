@@ -1,24 +1,25 @@
-package server
+package workers
 
 import (
-	"../app"
 	"../config"
 	"context"
 	"log"
 	"net/http"
 	"time"
+	"sync"
+	"github.com/gorilla/mux"
 )
 
-func Worker(a *app.App) {
+func Server(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Config, router *mux.Router) {
 
-	a.WorkersWg.Add(1)
-	defer a.WorkersWg.Done()
+	workersWg.Add(1)
+	defer workersWg.Done()
 
 	log.Print("Server thread starting...")
 
 	srv := &http.Server{
-		Addr:    ":" + config.GetListenPort(),
-		Handler: a.Router}
+		Addr:    ":" + config.ListenPortGet(),
+		Handler: router}
 
 	go func() {
 		log.Print("HTTP Server Listener thread starting...")
@@ -28,7 +29,7 @@ func Worker(a *app.App) {
 		}
 	}()
 
-	<-a.Quit
+	<-quitFlag
 	log.Print("HTTP Server Listener shutdown...")
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

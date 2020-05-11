@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"../types"
 )
 
 type RestPage struct {
@@ -15,9 +16,9 @@ type RestPage struct {
 	Records    int
 }
 
-func GetVolt(SerialRead <-chan string, SerialWrite chan<- string, w http.ResponseWriter, r *http.Request) {
-	SerialWrite <- "GET"
-	readings := <-SerialRead
+func GetVolt(stream types.StringStream, w http.ResponseWriter, r *http.Request) {
+	stream.Write <- "GET"
+	readings := <-stream.Read
 	v, ok := model.VoltParse(readings)
 	if ok {
 		respondJSON(w, http.StatusOK, v)

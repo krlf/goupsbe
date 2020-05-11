@@ -3,25 +3,29 @@ package main
 import (
 	"./app"
 	"./config"
-	"./monitor"
-	"./reader"
-	"./server"
-	"./writer"
+	"./workers"
 	"log"
+	"./db"
 )
 
 func main() {
 	log.Print("Hello, 世界")
 
+	config := &config.Config{}
 	config.Read()
 
-	app := &app.App{}
-	app.Initialize()
+	db := &db.Db{}
+	db.Open(config.DbPathGet())
 
-	go reader.Worker(app)
-	go writer.Worker(app)
-	go monitor.Worker(app)
-	go server.Worker(app)
+	app := &app.App{}
+	app.Initialize(config, db)
+
+	go workers.Reader(app.QuitFlagGet(), app.WorkersWgGet(), config, app.SerialStreamGet())
+	go workers.Writer(app.QuitFlagGet(), app.WorkersWgGet(), config, app.SerialStreamGet(), db)
+	go workers.Monitor(app.QuitFlagGet(), app.WorkersWgGet(), config, app.SerialStreamGet())
+	go workers.Server(app.QuitFlagGet(), app.WorkersWgGet(), config, app.RouterGet())
 
 	app.Run()
+
+	db.Close()
 }

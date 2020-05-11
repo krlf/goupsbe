@@ -1,3 +1,11 @@
+FROM golang AS x86builder
+
+RUN go get github.com/tarm/serial && go get github.com/mattn/go-sqlite3 && go get github.com/gorilla/mux
+RUN mkdir /app
+ADD ./src /app/ 
+WORKDIR /app 
+RUN go build -ldflags "-linkmode external -extldflags -static" -o main . 
+
 FROM arm32v7/golang AS builder
 
 RUN go get github.com/tarm/serial && go get github.com/mattn/go-sqlite3 && go get github.com/gorilla/mux

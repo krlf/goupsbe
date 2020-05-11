@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t goupsbe .
+docker build --target runner -t goupsbe .

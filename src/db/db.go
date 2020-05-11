@@ -1,7 +1,6 @@
 package db
 
 import (
-	"../config"
 	"../model"
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
@@ -10,15 +9,15 @@ import (
 )
 
 type Db struct {
-	DbConn *sql.DB
+	dbConn *sql.DB
 }
 
-func (db *Db) Open() {
-	dbConn, err := sql.Open("sqlite3", config.GetDbPath())
+func (db *Db) Open(dbPath string) {
+	dbConn, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.DbConn = dbConn
+	db.dbConn = dbConn
 
 	stmt, err := dbConn.Prepare(
 		"CREATE TABLE IF NOT EXISTS ups " +
@@ -43,20 +42,20 @@ func (db *Db) Open() {
 }
 
 func (db *Db) Close() {
-	if db.DbConn != nil {
-		db.DbConn.Close()
+	if db.dbConn != nil {
+		db.dbConn.Close()
 		log.Print("DB connection closing.")
 	}
 }
 
 func (db *Db) UpsVoltageInsert(v *model.Volt) {
 
-	if db.DbConn == nil {
+	if db.dbConn == nil {
 		log.Print("DB connection is not ready.")
 		return
 	}
 
-	stmt, err := db.DbConn.Prepare("INSERT INTO ups(vcc, vin, vcin, vout, vb1, vb2) values(?,?,?,?,?,?)")
+	stmt, err := db.dbConn.Prepare("INSERT INTO ups(vcc, vin, vcin, vout, vb1, vb2) values(?,?,?,?,?,?)")
 	if err != nil {
 		log.Println(err)
 		return
@@ -72,7 +71,7 @@ func (db *Db) UpsVoltageInsert(v *model.Volt) {
 
 func (db *Db) UpsVoltageGet(pg int, sz int) (v []model.Volt, records int, newPg int, newSz int) {
 
-	rows, err := db.DbConn.Query("SELECT COUNT(*) as count FROM ups")
+	rows, err := db.dbConn.Query("SELECT COUNT(*) as count FROM ups")
 	if err != nil {
 		log.Println("[UpsVoltageGet] Query error:")
 		log.Println(err)
@@ -104,7 +103,7 @@ func (db *Db) UpsVoltageGet(pg int, sz int) (v []model.Volt, records int, newPg 
 		}
 	}
 
-	rows, err = db.DbConn.Query("SELECT * FROM ups ORDER BY uid DESC LIMIT " + strconv.Itoa(offset) + "," + strconv.Itoa(newSz))
+	rows, err = db.dbConn.Query("SELECT * FROM ups ORDER BY uid DESC LIMIT " + strconv.Itoa(offset) + "," + strconv.Itoa(newSz))
 	if err != nil {
 		log.Println("[UpsVoltageGet] Query error:")
 		log.Println(err)
