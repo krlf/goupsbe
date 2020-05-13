@@ -5,11 +5,17 @@ import (
 	"../model"
 	"github.com/gorilla/mux"
 	"net/http"
+	"encoding/json"
 	"strconv"
 	"../types"
+	"../config"
 )
 
-type RestPage struct {
+type restConfig struct {
+	Managed bool
+}
+
+type restPage struct {
 	Content    []model.Volt
 	PageNumber int
 	PageSize   int
@@ -49,7 +55,28 @@ func GetHist(db *db.Db, w http.ResponseWriter, r *http.Request) {
 
 	v, records, newPg, newSz := db.UpsVoltageGet(pg, sz)
 
-	page := RestPage{v, newPg, newSz, records}
+	page := restPage{v, newPg, newSz, records}
 
 	respondJSON(w, http.StatusOK, page)
+}
+
+func GetConfig(config *config.Config, w http.ResponseWriter, r *http.Request) {
+	cfg := restConfig{
+		Managed: config.ChargeManagementEnabledGet() }
+	respondJSON(w, http.StatusOK, cfg)
+}
+
+func SetConfig(config *config.Config, w http.ResponseWriter, r *http.Request) {
+	cfg := restConfig{}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&cfg); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	defer r.Body.Close()
+
+	config.ChargeManagementEnabledSet(cfg.Managed)
+
+	respondJSON(w, http.StatusOK, cfg)
 }

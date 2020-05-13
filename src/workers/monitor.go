@@ -16,19 +16,13 @@ func Monitor(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Confi
 	defer workersWg.Done()
 	log.Print("Monitor thread starting...")
 	tick := time.Tick(config.MonitorIntervalGet() * time.Millisecond)
-	/*
-	configUpdateTriggerStream := config.ConfigUpdatedTriggerGet()
-	reconfigurtionTrigger := <- configUpdateTriggerStream
-	*/
 	for {
 		select {
-		/*
-		case <-reconfigurtionTrigger.Flag:
-			log.Print("[Monitor] Config updated. It is needed to re-read parameter.")
-			reconfigurtionTrigger = <- configUpdateTriggerStream
-		*/
+		case <-config.ConfigUpdatedTriggerGet():
+			log.Print("[Monitor] Config updated.")
+			manageVoltageData(serialStream, config)
 		case <-tick:
-			manageVoltageData(serialStream)
+			manageVoltageData(serialStream, config)
 		case <-quitFlag:
 			log.Print("Monitor thread exit...")
 			return
@@ -36,11 +30,17 @@ func Monitor(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Confi
 	}
 }
 
-func manageVoltageData(serialStream chan types.StringStream) {
+func manageVoltageData(serialStream chan types.StringStream, config *config.Config) {
 
 	stream := types.StringStreamCreate()
 	serialStream <- stream;
 	defer close(stream.Write)
+
+	if !config.ChargeManagementEnabledGet() {
+		stream.Write <- "CHREN"
+		<-stream.Read
+		return
+	}
 
 	stream.Write <- "GET"
 	readings := <-stream.Read

@@ -12,10 +12,10 @@ type Config struct {
 	writerInterval  time.Duration
 	serialDevice    string
 	dbPath          string
-	/*
-	configUpdatedTriggerStream chan types.TriggerStream
-	updateConfigTrigger types.TriggerStream
-	*/
+
+	chargeManagementEnabled bool
+
+	configUpdatedTrigger chan struct{}
 }
 
 func (c *Config)Read() {
@@ -24,14 +24,12 @@ func (c *Config)Read() {
 	c.writerInterval = time.Duration(getEnvInt("WRITER_INTERVAL", 97000))
 	c.serialDevice = getEnvString("SERIAL_DEVICE", "/dev/ttyUSB0")
 	c.dbPath = getEnvString("DB_PATH", "/app/db/ups.sqlite")
-	/*
-	if (c.configUpdatedTriggerStream == nil) {
-		c.configUpdatedTriggerStream = make(chan types.TriggerStream)
-		c.updateConfigTrigger = types.TriggerStreamCreate()
-		c.configUpdatedTriggerStream <- c.updateConfigTrigger
-	}
-	*/
+
+	c.chargeManagementEnabled = true
+
+	c.triggerUpdate()
 }
+
 
 func getEnvString(key string, defaultVal string) string {
 	if value, exists := os.LookupEnv(key); exists {
@@ -49,12 +47,30 @@ func getEnvInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
+func (c *Config)triggerUpdate() {
+	prevTrigger := c.configUpdatedTrigger;
+	c.configUpdatedTrigger = make(chan struct{})
+	if (prevTrigger != nil) {
+		close(prevTrigger)
+	}
+}
+
+func (c *Config)ConfigUpdatedTriggerGet() chan struct{} {
+	return c.configUpdatedTrigger
+}
+
 func (c *Config)ListenPortGet() string {
 	return c.listenPort
 }
+
 func (c *Config)MonitorIntervalGet() time.Duration {
 	return c.monitorInterval
 }
+func (c *Config)MonitorIntervalSet(interval time.Duration) {
+	c.monitorInterval = interval
+	c.triggerUpdate()
+}
+
 func (c *Config)WriterIntervalGet() time.Duration {
 	return c.writerInterval
 }
@@ -65,19 +81,10 @@ func (c *Config)DbPathGet() string {
 	return c.dbPath
 }
 
-/*
-func (c *Config)MonitorIntervalSet(interval time.Duration) {
-	c.monitorInterval = interval
+func (c *Config)ChargeManagementEnabledGet() bool {
+	return c.chargeManagementEnabled
+}
+func (c *Config)ChargeManagementEnabledSet(chargeManagementEnabled bool) {
+	c.chargeManagementEnabled = chargeManagementEnabled
 	c.triggerUpdate()
 }
-
-func (c *Config)triggerUpdate() {
-	close(c.updateConfigTrigger.Flag)
-	c.updateConfigTrigger = types.TriggerStreamCreate()
-	c.configUpdatedTriggerStream <- c.updateConfigTrigger
-}
-
-func (c *Config)ConfigUpdatedTriggerGet() chan types.TriggerStream {
-	return c.configUpdatedTriggerStream
-}
-*/

@@ -20,6 +20,7 @@ type App struct {
 	serialStream chan types.StringStream
 	workersWg *sync.WaitGroup
 	router *mux.Router
+	config *config.Config
 }
 
 func (a *App) Initialize(c *config.Config, db *db.Db) {
@@ -34,6 +35,9 @@ func (a *App) Initialize(c *config.Config, db *db.Db) {
 
 	a.setRoutes()
 
+	a.router.Use(mux.CORSMethodMiddleware(a.router))
+
+	a.config = c
 	a.db = db
 
 	sigs := make(chan os.Signal, 1)
@@ -81,20 +85,46 @@ func (a *App) Run() {
 
 func (a *App) setRoutes() {
 	a.Get("/volt", a.handleRequestStream(handler.GetVolt))
+
 	a.Get("/hist", a.handleRequestDb(handler.GetHist))
 	a.Get("/hist/{pg:[0-9]+}", a.handleRequestDb(handler.GetHist))
 	a.Get("/hist/{pg:[0-9]+}/{sz:[0-9]+}", a.handleRequestDb(handler.GetHist))
+
+	a.Get("/config", a.handleRequestConfig(handler.GetConfig))
+	a.Put("/config", a.handleRequestConfig(handler.SetConfig))
 }
 
-func (a *App) Get(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	a.router.HandleFunc(path, f).Methods("GET")
+func (a *App) Get(path string, handler func(w http.ResponseWriter, r *http.Request)) {
+	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		corsHeadersSet(w)
+		handler(w, r)
+	}).Methods(http.MethodGet)
+	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		corsHeadersSet(w)
+	}).Methods(http.MethodOptions)
 }
 
-type RequestHandlerFunctionDb func(a *db.Db, w http.ResponseWriter, r *http.Request)
+func (a *App) Put(path string, handler func(w http.ResponseWriter, r *http.Request)) {
+	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		corsHeadersSet(w)
+		handler(w, r)
+	}).Methods(http.MethodPut)
+	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		corsHeadersSet(w)
+	}).Methods(http.MethodOptions)
+}
+
+func corsHeadersSet(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
+	w.Header().Set("Access-Control-Max-Age", "86400")
+	//w.Header().Set("Access-Control-Allow-Credentials", "true");
+}
+
+type RequestHandlerFunctionDb func(db *db.Db, w http.ResponseWriter, r *http.Request)
 
 func (a *App) handleRequestDb(handler RequestHandlerFunctionDb) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		a.setHeaders(w)
 		handler(a.db, w, r)
 	}
 }
@@ -103,7 +133,6 @@ type RequestHandlerFunctionStream func(stream types.StringStream, w http.Respons
 
 func (a *App) handleRequestStream(handler RequestHandlerFunctionStream) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		a.setHeaders(w)
 		stream := types.StringStreamCreate()
 		a.serialStream <- stream;
 		handler(stream, w, r)
@@ -111,9 +140,10 @@ func (a *App) handleRequestStream(handler RequestHandlerFunctionStream) http.Han
 	}
 }
 
-func (a *App) setHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
-	//w.Header().Set("Access-Control-Allow-Credentials", "true");
+type RequestHandlerFunctionConfig func(config *config.Config, w http.ResponseWriter, r *http.Request)
+
+func (a *App) handleRequestConfig(handler RequestHandlerFunctionConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handler(a.config, w, r)
+	}
 }
