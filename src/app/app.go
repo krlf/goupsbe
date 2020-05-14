@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"../types"
 	"../config"
+	"strings"
 )
 
 type App struct {
@@ -35,7 +36,8 @@ func (a *App) Initialize(c *config.Config, db *db.Db) {
 
 	a.setRoutes()
 
-	a.router.Use(mux.CORSMethodMiddleware(a.router))
+	// a.router.Use(mux.CORSMethodMiddleware(a.router))
+	a.router.Use(corsMethodMiddleware(a.router))
 
 	a.config = c
 	a.db = db
@@ -94,6 +96,7 @@ func (a *App) setRoutes() {
 	a.Put("/config", a.handleRequestConfig(handler.SetConfig))
 }
 
+/*
 func (a *App) Get(path string, handler func(w http.ResponseWriter, r *http.Request)) {
 	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		corsHeadersSet(w)
@@ -117,8 +120,62 @@ func (a *App) Put(path string, handler func(w http.ResponseWriter, r *http.Reque
 func corsHeadersSet(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
-	w.Header().Set("Access-Control-Max-Age", "86400")
-	//w.Header().Set("Access-Control-Allow-Credentials", "true");
+	// w.Header().Set("Access-Control-Max-Age", "86400")
+	// w.Header().Set("Access-Control-Allow-Credentials", "true");
+}
+*/
+
+func (a *App) Get(path string, handler func(w http.ResponseWriter, r *http.Request)) {
+	a.router.HandleFunc(path, handler).Methods(http.MethodGet, http.MethodOptions)
+}
+
+func (a *App) Put(path string, handler func(w http.ResponseWriter, r *http.Request)) {
+	a.router.HandleFunc(path, handler).Methods(http.MethodPut, http.MethodOptions)
+}
+
+func unique(slice []string) []string {
+    keys := make(map[string]bool)
+    list := []string{} 
+    for _, entry := range slice {
+        if _, value := keys[entry]; !value {
+            keys[entry] = true
+            list = append(list, entry)
+        }
+    }    
+    return list
+}
+
+func corsMethodMiddleware(r *mux.Router) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			var allMethods []string
+
+			err := r.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+				if route.Match(req, &mux.RouteMatch{}) {
+					methods, err := route.GetMethods()
+					if err != nil {
+						return err
+					}
+					allMethods = append(allMethods, methods...)
+				}
+				return nil
+			})
+
+			if err == nil {
+				w.Header().Set("Access-Control-Allow-Methods", strings.Join(unique(allMethods), ","))
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
+				// w.Header().Set("Access-Control-Max-Age", "86400")
+				// w.Header().Set("Access-Control-Allow-Credentials", "true");
+			
+				if req.Method == "OPTIONS" {
+					return
+				}
+			}
+
+			next.ServeHTTP(w, req)
+		})
+	}
 }
 
 type RequestHandlerFunctionDb func(db *db.Db, w http.ResponseWriter, r *http.Request)
