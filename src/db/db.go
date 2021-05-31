@@ -1,11 +1,12 @@
 package db
 
 import (
-	"../model"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"strconv"
+	"upsbe/model"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Db struct {

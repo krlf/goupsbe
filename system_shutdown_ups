@@ -1,0 +1,13 @@
+#!/bin/bash
+
+test -d /var/run/shutdown_signal || mkdir /var/run/shutdown_signal
+echo "waiting" > /var/run/shutdown_signal/flag
+
+while sleep 30; do
+#while inotifywait -e close_write /var/run/shutdown_signal/flag; do
+  signal=$(cat /var/run/shutdown_signal/flag)
+  if [ "$signal" == "true" ]; then
+    echo "done" > /var/run/shutdown_signal/flag
+    shutdown -h now
+  fi
+done

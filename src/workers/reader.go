@@ -1,15 +1,16 @@
 package workers
 
 import (
-	"../config"
-	"github.com/tarm/serial"
 	"log"
-	"time"
 	"sync"
-	"../types"
+	"time"
+	"upsbe/config"
+	"upsbe/types"
+
+	"github.com/tarm/serial"
 )
 
-func Reader(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Config, serialStream chan types.StringStream) {
+func Reader(quitFlag chan bool, workersWg *sync.WaitGroup, upsConfig *config.Config, serialStream chan types.StringStream) {
 
 	workersWg.Add(1)
 	defer workersWg.Done()
@@ -18,7 +19,7 @@ func Reader(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Config
 		select {
 		case stream := <-serialStream:
 			for command := range stream.Write {
-				stream.Read <- readSerial(command, config)
+				stream.Read <- readSerial(command, upsConfig)
 			}
 			close(stream.Read)
 		case <-quitFlag:
@@ -29,9 +30,9 @@ func Reader(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Config
 
 }
 
-func readSerial(command string, config *config.Config) string {
+func readSerial(command string, upsConfig *config.Config) string {
 
-	serialConfig := &serial.Config{Name: config.SerialDeviceGet(), Baud: 38400, ReadTimeout: time.Millisecond * 500}
+	serialConfig := &serial.Config{Name: upsConfig.SerialDeviceGet(), Baud: 38400, ReadTimeout: time.Millisecond * 500}
 	s, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Print(err)

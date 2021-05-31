@@ -1,18 +1,23 @@
 package handler
 
 import (
-	"../db"
-	"../model"
-	"github.com/gorilla/mux"
-	"net/http"
 	"encoding/json"
+	"net/http"
 	"strconv"
-	"../types"
-	"../config"
+
+	"upsbe/config"
+	"upsbe/db"
+	"upsbe/model"
+	"upsbe/types"
+
+	"github.com/gorilla/mux"
 )
 
 type restConfig struct {
-	Managed bool
+	Managed              bool
+	StartChargingVoltage uint32
+	StopChargingVoltage  uint32
+	ShutdownVoltage      uint32
 }
 
 type restPage struct {
@@ -60,13 +65,16 @@ func GetHist(db *db.Db, w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, page)
 }
 
-func GetConfig(config *config.Config, w http.ResponseWriter, r *http.Request) {
+func GetConfig(upsConfig *config.Config, w http.ResponseWriter, r *http.Request) {
 	cfg := restConfig{
-		Managed: config.ChargeManagementEnabledGet() }
+		Managed:              upsConfig.ChargeManagementEnabledGet(),
+		StartChargingVoltage: upsConfig.StartChargingVoltageGet(),
+		StopChargingVoltage:  upsConfig.StopChargingVoltageGet(),
+		ShutdownVoltage:      upsConfig.ShutdownVoltageGet()}
 	respondJSON(w, http.StatusOK, cfg)
 }
 
-func SetConfig(config *config.Config, w http.ResponseWriter, r *http.Request) {
+func SetConfig(upsConfig *config.Config, w http.ResponseWriter, r *http.Request) {
 	cfg := restConfig{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -76,7 +84,17 @@ func SetConfig(config *config.Config, w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	config.ChargeManagementEnabledSet(cfg.Managed)
+	newConfig := &config.Config{}
+
+	newConfig.ChargeManagementEnabledSet(cfg.Managed)
+	newConfig.StartChargingVoltageSet(cfg.StartChargingVoltage)
+	newConfig.StopChargingVoltageSet(cfg.StopChargingVoltage)
+	newConfig.ShutdownVoltageSet(cfg.ShutdownVoltage)
+
+	if err := upsConfig.Apply(newConfig); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	respondJSON(w, http.StatusOK, cfg)
 }

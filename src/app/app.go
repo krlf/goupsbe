@@ -1,30 +1,31 @@
 package app
 
 import (
-	"../db"
-	"../handler"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
-	"../types"
-	"../config"
-	"strings"
+	"upsbe/config"
+	"upsbe/db"
+	"upsbe/handler"
+	"upsbe/types"
+
+	"github.com/gorilla/mux"
 )
 
 type App struct {
-	db                 *db.Db
-	quit               chan bool
+	db           *db.Db
+	quit         chan bool
 	serialStream chan types.StringStream
-	workersWg *sync.WaitGroup
-	router *mux.Router
-	config *config.Config
+	workersWg    *sync.WaitGroup
+	router       *mux.Router
+	upsConfig    *config.Config
 }
 
-func (a *App) Initialize(c *config.Config, db *db.Db) {
+func (a *App) Initialize(upsConfig *config.Config, db *db.Db) {
 
 	a.quit = make(chan bool, 1)
 
@@ -36,10 +37,9 @@ func (a *App) Initialize(c *config.Config, db *db.Db) {
 
 	a.setRoutes()
 
-	// a.router.Use(mux.CORSMethodMiddleware(a.router))
 	a.router.Use(corsMethodMiddleware(a.router))
 
-	a.config = c
+	a.upsConfig = upsConfig
 	a.db = db
 
 	sigs := make(chan os.Signal, 1)
@@ -54,23 +54,21 @@ func (a *App) Initialize(c *config.Config, db *db.Db) {
 
 }
 
-func (a *App)WorkersWgGet() *sync.WaitGroup {
+func (a *App) WorkersWgGet() *sync.WaitGroup {
 	return a.workersWg
 }
 
-func (a *App)SerialStreamGet() chan types.StringStream {
+func (a *App) SerialStreamGet() chan types.StringStream {
 	return a.serialStream
 }
 
-func (a *App)QuitFlagGet() chan bool {
+func (a *App) QuitFlagGet() chan bool {
 	return a.quit
 }
 
-func (a *App)RouterGet() *mux.Router {
+func (a *App) RouterGet() *mux.Router {
 	return a.router
 }
-
-
 
 func (a *App) Run() {
 	done := false
@@ -96,35 +94,6 @@ func (a *App) setRoutes() {
 	a.Put("/config", a.handleRequestConfig(handler.SetConfig))
 }
 
-/*
-func (a *App) Get(path string, handler func(w http.ResponseWriter, r *http.Request)) {
-	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		corsHeadersSet(w)
-		handler(w, r)
-	}).Methods(http.MethodGet)
-	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		corsHeadersSet(w)
-	}).Methods(http.MethodOptions)
-}
-
-func (a *App) Put(path string, handler func(w http.ResponseWriter, r *http.Request)) {
-	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		corsHeadersSet(w)
-		handler(w, r)
-	}).Methods(http.MethodPut)
-	a.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		corsHeadersSet(w)
-	}).Methods(http.MethodOptions)
-}
-
-func corsHeadersSet(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
-	// w.Header().Set("Access-Control-Max-Age", "86400")
-	// w.Header().Set("Access-Control-Allow-Credentials", "true");
-}
-*/
-
 func (a *App) Get(path string, handler func(w http.ResponseWriter, r *http.Request)) {
 	a.router.HandleFunc(path, handler).Methods(http.MethodGet, http.MethodOptions)
 }
@@ -134,15 +103,15 @@ func (a *App) Put(path string, handler func(w http.ResponseWriter, r *http.Reque
 }
 
 func unique(slice []string) []string {
-    keys := make(map[string]bool)
-    list := []string{} 
-    for _, entry := range slice {
-        if _, value := keys[entry]; !value {
-            keys[entry] = true
-            list = append(list, entry)
-        }
-    }    
-    return list
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
 
 func corsMethodMiddleware(r *mux.Router) mux.MiddlewareFunc {
@@ -167,7 +136,7 @@ func corsMethodMiddleware(r *mux.Router) mux.MiddlewareFunc {
 				w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With,content-type")
 				// w.Header().Set("Access-Control-Max-Age", "86400")
 				// w.Header().Set("Access-Control-Allow-Credentials", "true");
-			
+
 				if req.Method == "OPTIONS" {
 					return
 				}
@@ -191,16 +160,16 @@ type RequestHandlerFunctionStream func(stream types.StringStream, w http.Respons
 func (a *App) handleRequestStream(handler RequestHandlerFunctionStream) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		stream := types.StringStreamCreate()
-		a.serialStream <- stream;
+		a.serialStream <- stream
 		handler(stream, w, r)
 		close(stream.Write)
 	}
 }
 
-type RequestHandlerFunctionConfig func(config *config.Config, w http.ResponseWriter, r *http.Request)
+type RequestHandlerFunctionConfig func(upsConfig *config.Config, w http.ResponseWriter, r *http.Request)
 
 func (a *App) handleRequestConfig(handler RequestHandlerFunctionConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handler(a.config, w, r)
+		handler(a.upsConfig, w, r)
 	}
 }

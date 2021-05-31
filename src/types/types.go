@@ -1,14 +1,14 @@
 package types
 
 type StringStream struct {
-	Read chan string
+	Read  chan string
 	Write chan string
 }
 
 func StringStreamCreate() StringStream {
-	return StringStream {
-		Read: make(chan string),
-		Write: make(chan string) }
+	return StringStream{
+		Read:  make(chan string),
+		Write: make(chan string)}
 }
 
 /*

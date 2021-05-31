@@ -1,16 +1,17 @@
 package workers
 
 import (
-	"../config"
 	"context"
 	"log"
 	"net/http"
-	"time"
 	"sync"
+	"time"
+	"upsbe/config"
+
 	"github.com/gorilla/mux"
 )
 
-func Server(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Config, router *mux.Router) {
+func Server(quitFlag chan bool, workersWg *sync.WaitGroup, upsConfig *config.Config, router *mux.Router) {
 
 	workersWg.Add(1)
 	defer workersWg.Done()
@@ -18,7 +19,7 @@ func Server(quitFlag chan bool, workersWg *sync.WaitGroup, config *config.Config
 	log.Print("Server thread starting...")
 
 	srv := &http.Server{
-		Addr:    ":" + config.ListenPortGet(),
+		Addr:    ":" + upsConfig.ListenPortGet(),
 		Handler: router}
 
 	go func() {
